@@ -3,16 +3,17 @@ require_relative '../test_helper'
 describe DeploysController do
   let(:project) { job.project }
   let(:stage) { deploy.stage }
+  let(:admin) { users(:admin) }
   let(:deployer) { users(:deployer) }
   let(:command) { job.command }
   let(:job) { jobs(:succeeded_test) }
   let(:deploy) { deploys(:succeeded_test) }
-  let(:deploy_service) { stub(deploy!: nil) }
+  let(:deploy_service) { stub(deploy!: nil, stop!: nil) }
   let(:deploy_called) { [] }
   let(:changeset) { stub_everything(commits: [], files: [], pull_requests: [], jira_issues: []) }
 
   setup do
-    DeployService.stubs(:new).with(project, deployer).returns(deploy_service)
+    DeployService.stubs(:new).with(deployer).returns(deploy_service)
     deploy_service.stubs(:deploy!).capture(deploy_called).returns(deploy)
 
     Deploy.any_instance.stubs(:changeset).returns(changeset)
@@ -26,23 +27,15 @@ describe DeploysController do
 
   as_a_viewer do
     describe "a GET to :index" do
-      setup { get :index, project_id: project.to_param, format: format }
-
-      describe "as html" do
-        let(:format) { :html }
-
-        it "renders the template" do
-          assert_template :index
-        end
+      it "renders html" do
+        get :index, project_id: project
+        assert_template :index
       end
 
-      describe "as json" do
-        let(:format) { :json }
-
-        it "renders json" do
-          assert_equal "application/json", @response.content_type
-          assert_response :ok
-        end
+      it "renders json" do
+        get :index, project_id: project, format: "json"
+        assert_response :ok
+        assert_equal "application/json", @response.content_type
       end
     end
 
@@ -222,7 +215,7 @@ describe DeploysController do
       before { deploy.job.update_column(:status, 'pending') }
 
       it "confirms and redirects to the deploy" do
-        DeployService.stubs(:new).with(project, deploy.user).returns(deploy_service)
+        DeployService.stubs(:new).with(deploy.user).returns(deploy_service)
         deploy_service.expects(:confirm_deploy!)
         refute deploy.buddy
 
@@ -236,7 +229,9 @@ describe DeploysController do
     describe "a DELETE to :destroy" do
       describe "with a deploy owned by the deployer" do
         setup do
+          DeployService.stubs(:new).with(deployer).returns(deploy_service)
           Deploy.any_instance.stubs(:started_by?).returns(true)
+          deploy_service.expects(:stop!).once
 
           delete :destroy, project_id: project.to_param, id: deploy.to_param
         end
@@ -248,6 +243,7 @@ describe DeploysController do
 
       describe "with a deploy not owned by the deployer" do
         setup do
+          deploy_service.expects(:stop!).never
           Deploy.any_instance.stubs(:started_by?).returns(false)
           User.any_instance.stubs(:is_admin?).returns(false)
 
@@ -265,6 +261,8 @@ describe DeploysController do
     describe "a DELETE to :destroy" do
       describe "with a valid deploy" do
         setup do
+          DeployService.stubs(:new).with(admin).returns(deploy_service)
+          deploy_service.expects(:stop!).once
           delete :destroy, project_id: project.to_param, id: deploy.to_param
         end
 

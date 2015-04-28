@@ -1,7 +1,7 @@
 if !Rails.env.test? && !ENV['PRECOMPILE'] && Job.table_exists?
   if ENV['SERVER_MODE']
     Rails.application.config.after_initialize do
-      Job.running.each(&:stop!)
+      Job.running.each(&:stop!) if Job.table_exists?
       JobExecution.enabled = true
     end
   end

@@ -3,7 +3,7 @@ cache:
   bundler: true
   directories:
     - node_modules
-rvm: 2.1.5
+rvm: 2.2.2
 sudo: false
 services:
   - memcached
@@ -20,5 +20,7 @@ before_script:
   - bundle exec rake db:create
   - npm install
 script:
-  - npm test
+  - npm run-script jshint
+  - bundle exec rake test:js
+  - SECRET_TOKEN=foo GITHUB_TOKEN=foo RAILS_ENV=production bundle exec rake assets:precompile
   - bundle exec rake

@@ -14,8 +14,9 @@
       <% end %>
     <% end %>
 
-    <%= link_to "Back", project_path(@project), class: "btn btn-default" %>
+    <%= link_to "Back", @project, class: "btn btn-default" %>
   </div>
 </h1>
 
 <%= deploy_status_panel @deploy %>
+<%= Samson::Hooks.render_views(:deploys_header, self) %>

@@ -5,8 +5,7 @@ class DeploysController < ApplicationController
   before_action :stage, only: :new
 
   def index
-    @page = params[:page]
-    @deploys = @project.deploys.includes(:stage, job: :user).page(@page)
+    @deploys = @project.deploys.page(params[:page])
 
     respond_to do |format|
       format.html
@@ -15,8 +14,8 @@ class DeploysController < ApplicationController
   end
 
   def active
-    scope = @project ? @project.deploys : Deploy.includes(:stage)
-    @deploys = scope.active.includes(job: :user).page(params[:page])
+    scope = (@project ? @project.deploys : Deploy)
+    @deploys = scope.active.page(params[:page])
 
     respond_to do |format|
       format.html
@@ -28,23 +27,23 @@ class DeploysController < ApplicationController
     respond_to do |format|
       format.html
       format.json do
-        render json: Deploy.includes(:stage, job: :user).page(params[:page]).per(30)
+        render json: Deploy.page(params[:page]).per(30)
       end
     end
   end
 
   def new
-    @deploy = @project.deploys.build(params.permit(:stage_id, :reference))
+    @deploy = @project.deploys.build(params.except(:project_id).permit(:stage_id, :reference))
   end
 
   def create
-    deploy_service = DeployService.new(@project, current_user)
+    deploy_service = DeployService.new(current_user)
     @deploy = deploy_service.deploy!(stage, reference)
 
     respond_to do |format|
       format.html do
         if @deploy.persisted?
-          redirect_to project_deploy_path(@project, @deploy)
+          redirect_to [@project, @deploy]
         else
           render :new
         end
@@ -66,7 +65,7 @@ class DeploysController < ApplicationController
       @deploy.confirm_buddy!(current_user)
     end
 
-    redirect_to project_deploy_path(@project, @deploy)
+    redirect_to [@project, @deploy]
   end
 
   def pending_start
@@ -74,7 +73,7 @@ class DeploysController < ApplicationController
       @deploy.pending_start!
     end
 
-    redirect_to project_deploy_path(@project, @deploy)
+    redirect_to [@project, @deploy]
   end
 
   def show
@@ -98,11 +97,11 @@ class DeploysController < ApplicationController
 
   def destroy
     if @deploy.can_be_stopped_by?(current_user)
-      @deploy.stop!
+      DeployService.new(current_user).stop!(@deploy)
     else
       flash[:error] = "You do not have privileges to stop this deploy."
     end
-    redirect_to project_deploy_path(@project, @deploy)
+    redirect_to [@project, @deploy]
   end
 
   protected
@@ -124,6 +123,6 @@ class DeploysController < ApplicationController
   end
 
   def find_deploy
-    @deploy = Deploy.includes(stage: [:new_relic_applications]).find(params[:id])
+    @deploy = Deploy.find(params[:id])
   end
 end

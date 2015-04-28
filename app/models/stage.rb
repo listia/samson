@@ -14,7 +14,7 @@ class Stage < ActiveRecord::Base
   has_many :stage_commands, autosave: true
   has_many :commands,
     -> { order('stage_commands.position ASC') },
-    through: :stage_commands
+    through: :stage_commands, auto_include: false
 
   has_and_belongs_to_many :deploy_groups
 
@@ -154,11 +154,15 @@ class Stage < ActiveRecord::Base
   end
 
   def production?
-    if ENV['DEPLOY_GROUP_FEATURE']
+    if DeployGroup.enabled?
       deploy_groups.empty? ? super : deploy_groups.any? { |deploy_group| deploy_group.environment.is_production? }
     else
       super
     end
+  end
+
+  def deploy_requires_approval?
+    BuddyCheck.enabled? && production?
   end
 
   def automated_failure_emails(deploy)
@@ -180,6 +184,10 @@ class Stage < ActiveRecord::Base
     end
 
     emails.uniq.presence
+  end
+
+  def datadog_monitors
+    datadog_monitor_ids.to_s.split(/, ?/).map { |id| DatadogMonitor.new(id) }
   end
 
   private
@@ -214,5 +222,3 @@ class Stage < ActiveRecord::Base
     Stage.unscoped.where(project_id: project_id)
   end
 end
-
-Samson::Hooks.fire(:stage_defined)

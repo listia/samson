@@ -6,4 +6,18 @@ class DeployGroup < ActiveRecord::Base
 
   validates_presence_of :name, :environment_id
   validates_uniqueness_of :name
+
+  default_scope { order(:name) }
+
+  def self.enabled?
+    ENV['DEPLOY_GROUP_FEATURE'].present?
+  end
+
+  def deploys
+    Deploy.where(stage: stage_ids)
+  end
+
+  def long_name
+    "#{name} (#{environment.name})"
+  end
 end

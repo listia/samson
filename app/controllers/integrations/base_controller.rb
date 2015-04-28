@@ -26,8 +26,8 @@ class Integrations::BaseController < ApplicationController
   end
 
   def deploy_to_stages
-    stages = project.webhook_stages_for_branch(branch)
-    deploy_service = DeployService.new(project, user)
+    stages = project.webhook_stages_for(branch, service_type, service_name)
+    deploy_service = DeployService.new(user)
 
     stages.all? do |stage|
       deploy_service.deploy!(stage, commit).persisted?
@@ -49,5 +49,15 @@ class Integrations::BaseController < ApplicationController
     email = "deploy+#{name.underscore}@#{Rails.application.config.samson.email.sender_domain}"
 
     User.create_with(name: name, integration: true).find_or_create_by(email: email)
+  end
+
+  private
+
+  def service_type
+    'ci'
+  end
+
+  def service_name
+    @service_name ||= self.class.name.demodulize.sub('Controller', '').downcase
   end
 end

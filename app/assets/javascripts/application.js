@@ -11,8 +11,10 @@
 // about supported directives.
 //
 //= require jquery
-//= require jquery_ujs
+//= require jquery-ujs
 //= require angular
+//= require angular-rails-templates
+//= require underscore
 //= require moment
 //= require bootstrap/alert
 //= require bootstrap/dropdown
@@ -21,8 +23,11 @@
 //= require bootstrap/popover
 //= require bootstrap-select
 //= require jquery-ui
-//= require bootstrap3-editable/bootstrap-editable
-//= require rickshaw_with_d3
-//= require app.js
-//= require config.js
+//= require x-editable/dist/bootstrap3-editable/js/bootstrap-editable
+//= require rickshaw/vendor/d3.min
+//= require rickshaw
+//= require vis
+//= require app
+//= require config
 //= require_tree .
+//= require_tree ../templates

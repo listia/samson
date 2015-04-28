@@ -1,12 +1,15 @@
 require 'open-uri' # needed to fetch from img.shields.io using open()
 
 class StagesController < ApplicationController
+  include StagePermittedParams
+
   skip_before_action :login_users, if: :badge?
   before_action :authorize_admin!, except: [:index, :show]
   before_action :authorize_deployer!, unless: :badge?
   before_action :check_token, if: :badge?
   before_action :find_project
   before_action :find_stage, only: [:show, :edit, :update, :destroy, :clone]
+  before_action :get_environments, only: [:new, :create, :edit, :update, :clone]
 
   def index
     @stages = @project.stages
@@ -22,7 +25,7 @@ class StagesController < ApplicationController
   def show
     respond_to do |format|
       format.html do
-        @deploys = @stage.deploys.includes(:stage, job: :user).page(params[:page])
+        @deploys = @stage.deploys.page(params[:page])
       end
       format.svg do
         badge = if deploy = @stage.last_successful_deploy
@@ -51,7 +54,7 @@ class StagesController < ApplicationController
     @stage.attributes = stage_params
 
     if @stage.save
-      redirect_to project_stage_path(@project, @stage)
+      redirect_to [@project, @stage]
     else
       flash[:error] = @stage.errors.full_messages
 
@@ -67,7 +70,7 @@ class StagesController < ApplicationController
 
   def update
     if @stage.update_attributes(stage_params)
-      redirect_to project_stage_path(@project, @stage)
+      redirect_to [@project, @stage]
     else
       flash[:error] = @stage.errors.full_messages
 
@@ -79,7 +82,7 @@ class StagesController < ApplicationController
 
   def destroy
     @stage.soft_delete!
-    redirect_to project_path(@project)
+    redirect_to @project
   end
 
   def reorder
@@ -112,19 +115,7 @@ class StagesController < ApplicationController
   end
 
   def stage_params
-    params.require(:stage).permit([
-      :name, :command, :confirm, :permalink, :dashboard,
-      :production,
-      :notify_email_address,
-      :deploy_on_release,
-      :datadog_tags,
-      :update_github_pull_requests,
-      :email_committers_on_automated_deploy_failure,
-      :static_emails_on_automated_deploy_failure,
-      deploy_group_ids: [],
-      command_ids: [],
-      new_relic_applications_attributes: [:id, :name, :_destroy]
-    ] + Samson::Hooks.fire(:stage_permitted_params))
+    params.require(:stage).permit(stage_permitted_params)
   end
 
   def find_project
@@ -133,5 +124,9 @@ class StagesController < ApplicationController
 
   def find_stage
     @stage = @project.stages.find_by_param!(params[:id])
+  end
+
+  def get_environments
+    @environments = Environment.all
   end
 end

@@ -6,11 +6,17 @@
     <ul class="nav navbar-nav">
       <% if current_user %>
         <li class="dropdown <%= 'active' if request.path.starts_with?('/projects') %>">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Projects <b class="caret"></b></a>
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" focus-on="{ click: '#project_search' }">Projects <b class="caret"></b></a>
           <ul class="dropdown-menu">
+            <li>
+              <a class="padding-sm">
+                <input id="project_search" type="search" ng-model="projectSearchQuery" ng-trim="false" handle-dropdown-selection class="form-control input-block" placeholder="Search projects">
+              </a>
+            </li>
+            <li class="divider"></li>
             <% Project.ordered_for_user(current_user).each do |project| %>
-              <li>
-                <%= link_to project_path(project) do %>
+              <li filter-by="projectSearchQuery">
+                <%= link_to project do %>
                   <span class="glyphicon <%= 'glyphicon-star' if current_user.starred_project?(project) %>">
                     <%= '&nbsp;'.html_safe unless current_user.starred_project?(project) %>
                   </span>
@@ -20,7 +26,7 @@
             <% end %>
           </ul>
         </li>
-        <% if ENV['DEPLOY_GROUP_FEATURE'] %>
+        <% if DeployGroup.enabled? %>
           <li class="dropdown <%= 'active' if request.path.starts_with?('/dashboards') %>">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">Environments <b class="caret"></b></a>
             <ul class="dropdown-menu">
@@ -37,10 +43,10 @@
         <li class="<%= 'active' if current_page?(controller: '/deploys', action: 'recent') %>">
           <%= link_to "Recent Deploys", recent_deploys_path %>
         </li>
-        <li class="<%= 'active' if current_page?(controller: '/deploys', action: 'active') %>">
+        <li class="current-deploys <%= 'active' if current_page?(controller: '/deploys', action: 'active') %>" ng-controller="currentDeployBadgeCtrl">
           <%= link_to active_deploys_path do %>
             Current Deploys
-            <%= content_tag(:span, Deploy.active.count, class: "badge") unless Deploy.active.count.zero? %>
+            <%= content_tag(:span, '{{ currentActiveDeploys }}', class: 'badge badge-deploys', style: 'display: none', id: 'currentDeploysBadge', data: { url: active_deploys_url(format: 'json') }) %>
           <% end %>
         </li>
       <% end %>
@@ -49,7 +55,7 @@
         <li class="dropdown <%= 'active' if request.path.starts_with?('/admin') %>">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">Admin <b class="caret"></b></a>
           <ul class="dropdown-menu">
-            <% if ENV['DEPLOY_GROUP_FEATURE'] %>
+            <% if DeployGroup.enabled? %>
               <li><%= link_to "Environments", admin_environments_path %></li>
               <li><%= link_to "Deploy Groups", admin_deploy_groups_path %></li>
             <% end %>

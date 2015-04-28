@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
+source 'https://rails-assets.org'
 
 gem 'bundler'
 
@@ -7,6 +8,7 @@ gem 'puma'
 gem 'dotenv-rails', '~> 0.9'
 
 gem 'dogstatsd-ruby', '~> 1.4.0', require: 'statsd'
+gem 'goldiloader'
 
 group :mysql2 do
   gem 'mysql2', '~> 0.3'
@@ -26,6 +28,7 @@ gem 'dalli', '~> 2.7.0'
 gem 'active_model_serializers', '~> 0.8.0'
 
 gem 'sawyer', '~> 0.5'
+gem 'sse-rails-engine'
 
 # Logging
 gem 'lograge'
@@ -38,16 +41,26 @@ group :production, :staging do
 end
 
 group :assets do
+  gem 'ngannotate-rails'
   gem 'sass-rails', '~> 5.0'
   gem 'uglifier', '>= 1.3.0'
-  gem 'jquery-rails'
-  gem 'jquery-ui-rails'
+  gem 'angular-rails-templates'
   gem 'bootstrap-sass'
-  gem 'font-awesome-sass'
-  gem 'bootstrap-x-editable-rails'
-  gem 'rickshaw_rails'
-  gem 'angularjs-rails'
-  gem 'momentjs-rails'
+
+  gem 'rails-assets-angular'
+  gem 'rails-assets-angular-mocks'
+  gem 'rails-assets-angular-scenario'
+  gem 'rails-assets-bootstrap-select'
+  gem 'rails-assets-font-awesome'
+  gem 'rails-assets-jquery'
+  gem 'rails-assets-jquery-ui'
+  gem 'rails-assets-jquery-ujs'
+  gem 'rails-assets-moment'
+  gem 'rails-assets-rickshaw'
+  gem 'rails-assets-typeahead.js'
+  gem 'rails-assets-underscore'
+  gem 'rails-assets-vis'
+  gem 'rails-assets-x-editable'
 end
 
 group :no_preload do
@@ -69,7 +82,7 @@ group :no_preload do
   Dir["plugins/*/"].each { |f| gemspec path: f } # treat included plugins like gems
 end
 
-group :development do
+group :development, :staging do
   gem 'web-console'
   gem 'rack-mini-profiler'
 end

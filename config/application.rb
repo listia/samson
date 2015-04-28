@@ -66,6 +66,8 @@ module Samson
       protocol: config.samson.uri.scheme
     }
 
+    config.action_controller.action_on_unpermitted_parameters = :raise
+
     config.after_initialize do
       # Token used to request badges
       unless ENV['PRECOMPILE']

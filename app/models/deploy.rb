@@ -67,9 +67,13 @@ class Deploy < ActiveRecord::Base
     end
   end
 
+  def bypassed_approval?
+    stage.deploy_requires_approval? && buddy == user
+  end
+
   def confirm_buddy!(buddy)
     update_attributes!(buddy: buddy, started_at: Time.now)
-    DeployService.new(project, user).confirm_deploy!(self, stage, reference, buddy)
+    DeployService.new(user).confirm_deploy!(self)
   end
 
   def start_time
@@ -82,7 +86,7 @@ class Deploy < ActiveRecord::Base
 
   def pending_start!
     update_attributes(updated_at: Time.now)       # hack: refresh is immediate with update
-    DeployService.new(project, user).confirm_deploy!(self, stage, reference, buddy)
+    DeployService.new(user).confirm_deploy!(self)
   end
 
   def waiting_for_buddy?
@@ -116,6 +120,10 @@ class Deploy < ActiveRecord::Base
   def self.expired
     threshold = BuddyCheck.deploy_max_minutes_pending.minutes.ago
     joins(:job).where(jobs: { status: 'pending'} ).where("jobs.created_at < ?", threshold)
+  end
+
+  def url
+    Rails.application.routes.url_helpers.project_deploy_path(project, self)
   end
 
   private
