@@ -1,0 +1,5 @@
+<fieldset>
+  <legend>Env variables written to .env before deploy</legend>
+  <% rows = [[form.object.env.to_s.split("\n").size, 4].max, 10].min %>
+  <%= form.text_area :env, class: "form-control", rows: rows, placeholder: 'MY_ENV_KEY="some value"' %>
+</fieldset>

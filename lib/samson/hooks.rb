@@ -5,8 +5,9 @@ module Samson
       :stage_form,
       :stage_clone,
       :stage_permitted_params,
-      :before_deploy,
       :deploy_view,
+      :before_deploy,
+      :after_deploy_setup,
       :after_deploy,
       :deploys_header
     ]
