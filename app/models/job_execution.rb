@@ -101,28 +101,18 @@ class JobExecution
 
     FileUtils.mkdir_p(artifact_cache_dir)
     @output.write("Executing deploy\n")
-
-    commands = [
-      "export DEPLOYER=#{@job.user.email.shellescape}",
-      "export DEPLOYER_EMAIL=#{@job.user.email.shellescape}",
-      "export DEPLOYER_NAME=#{@job.user.name.shellescape}",
-      "export REVISION=#{@reference.shellescape}",
-      "export TAG=#{(@job.tag || @job.commit).to_s.shellescape}",
-      "export CACHE_DIR=#{artifact_cache_dir}",
-      "cd #{dir}",
-      *@job.commands
-    ]
+    @output.write("Deploy URL: #{@job.deploy.url}\n") if @job.deploy
 
     payload = {
       stage: (stage.try(:name) || "none"),
       project: @job.project.name,
-      command: commands.join("\n")
+      command: commands(dir).join("\n")
     }
 
     ActiveRecord::Base.clear_active_connections!
 
     ActiveSupport::Notifications.instrument("execute_shell.samson", payload) do
-      payload[:success] = @executor.execute!(*commands)
+      payload[:success] = @executor.execute!(*commands(dir))
     end
   end
 
@@ -139,6 +129,25 @@ class JobExecution
     else
       @output.write("Could not get exclusive lock on repo. Maybe another stage is being deployed.\n")
       false
+    end
+  end
+
+  def commands(dir)
+    @commands ||= begin
+      commands = [
+        "export DEPLOYER=#{@job.user.email.shellescape}",
+        "export DEPLOYER_EMAIL=#{@job.user.email.shellescape}",
+        "export DEPLOYER_NAME=#{@job.user.name.shellescape}",
+        "export REVISION=#{@reference.shellescape}",
+        "export TAG=#{(@job.tag || @job.commit).to_s.shellescape}",
+        "export CACHE_DIR=#{artifact_cache_dir}",
+        "cd #{dir}",
+        *@job.commands
+      ]
+      if @stage && @stage.deploy_groups.count > 0
+        commands.insert(0, "export DEPLOY_GROUPS='#{@stage.deploy_groups.map(&:name).map(&:shellescape).join(' ')}'")
+      end
+      commands
     end
   end
 

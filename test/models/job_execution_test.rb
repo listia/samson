@@ -4,12 +4,14 @@ describe JobExecution do
 
   let(:repository_url) { Dir.mktmpdir }
   let(:repo_dir) { File.join(GitRepository.cached_repos_dir, project.repository_directory) }
+  let(:pod1) { deploy_groups(:pod1) }
+  let(:pod2) { deploy_groups(:pod2) }
   let(:project) { Project.create!(name: 'duck', repository_url: repository_url) }
-  let(:stage) { Stage.create!(name: 'stage4', project: project) }
+  let(:stage) { Stage.create!(name: 'stage4', project: project, deploy_groups: [pod1, pod2]) }
   let(:user) { User.create!(name: 'test') }
   let(:job) { project.jobs.create!(command: 'cat foo', user: user, project: project) }
   let(:execution) { JobExecution.new('master', job) }
-  let(:deploy) { Deploy.create!(stage: stage, job: job, reference: 'masterCADF') }
+  let(:deploy) { Deploy.create!(stage: stage, job: job, reference: 'master') }
 
   before do
     Project.any_instance.stubs(:valid_repository_url).returns(true)
@@ -123,6 +125,15 @@ describe JobExecution do
     lines.must_include "DEPLOYER_NAME=John Doe"
     lines.must_include "REVISION=master"
     lines.must_include "TAG=v1"
+  end
+
+  it 'exports deploy_group information if deploy groups present' do
+    job.update(command: 'env')
+    job.deploy = deploy
+    execute_job
+    lines = job.output.split "\n"
+    lines.must_include "Deploy URL: #{deploy.url}"
+    lines.must_include "DEPLOY_GROUPS=Pod1 Pod2"
   end
 
   it 'maintains a cache of build artifacts between runs' do
